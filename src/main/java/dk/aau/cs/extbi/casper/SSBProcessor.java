@@ -29,6 +29,7 @@ public class SSBProcessor {
 	private boolean dataRead;
 	private int numberOfFacts;
 	private QueryExecution qexec;
+	private int percentage;
 
 	public SSBProcessor (String path) {
 		this.path = path;
@@ -37,6 +38,7 @@ public class SSBProcessor {
 	}
 	
 	public void readData(int percentage) {
+		this.percentage = percentage;
 		dataset.begin(ReadWrite.READ) ;
 		
 		
@@ -231,7 +233,7 @@ public class SSBProcessor {
 	    	
 	    	PrintWriter writer;
 			try {
-				writer = new PrintWriter(path+"provenanceQuery/"+"query"+numberOfFacts+".txt", "UTF-8");
+				writer = new PrintWriter(path+"provenanceQuery/"+"query"+percentage+".txt", "UTF-8");
 				for (String string : URLs) {
 					writer.println(string);
 				}
