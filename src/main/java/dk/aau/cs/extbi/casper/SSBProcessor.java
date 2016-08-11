@@ -46,6 +46,54 @@ public class SSBProcessor {
 		System.out.println(numberOfFacts);
 		
 		
+		//lineorderDefault();
+		lineorderMod();
+	
+		//TODO it is a bit weird that it says customer and not custkey (maybe it amounts to the same thing)
+		executeQuery(getCustomers(),"customer",custkeys);
+		
+		executeQuery(getPart(),"partkey",partkeys);
+	
+		executeQuery(getSupplier(),"suppkey",suppkeys);
+		
+		executeQuery(getDate(),"date",datekeys);
+		
+		dataset.commit();
+		dataset.end();
+		dataRead = true;
+	}
+
+	private void lineorderMod() {
+		qexec = QueryExecutionFactory.create(getAllLineorders(), dataset);
+		ResultSet lineorder = qexec.execSelect() ;
+		
+		
+		int counter = 0;
+		int lo = 0;
+		int numberOfMatches = this.percentage/10;
+		while (lineorder.hasNext())
+		{
+			QuerySolution bindings = lineorder.nextSolution();
+			if (counter%10 < numberOfMatches) {
+				//System.out.println("counter: "+counter+ " mod 10 = "+counter%10+" is less or equals than "+numberOfMatches);
+				
+				suppkeys.add(bindings.get("suppkey").toString());
+				custkeys.add(bindings.get("customer").toString());
+				datekeys.add(bindings.get("commitdate").toString());
+				datekeys.add(bindings.get("orderdate").toString());
+				partkeys.add(bindings.get("partkey").toString());
+				URLs.add(bindings.get("loGraph").toString());
+				lo++;
+				//System.out.println(lo);
+			}
+			counter++;
+		}
+		System.out.println("Added "+ lo +" graphs from lineitem");
+		
+	}
+
+	@SuppressWarnings("unused")
+	private void lineorderDefault() {
 		qexec = QueryExecutionFactory.create(getLineorder(numberOfFacts), dataset);
 		ResultSet lineorder = qexec.execSelect() ;
 		
@@ -62,66 +110,22 @@ public class SSBProcessor {
 			lo++;
 		}
 		System.out.println("Added "+ lo +" graphs from lineitem");
-		
-		qexec = QueryExecutionFactory.create(getCustomers(), dataset) ;
-		ResultSet customer = qexec.execSelect() ;
-		
-		int c = 0;
-		while (customer.hasNext())
-		{
-			QuerySolution bindings = customer.nextSolution();
-			if (custkeys.contains(bindings.get("customer").toString())) {
-				URLs.add(bindings.get("graph").toString());
-				c++;
-			}
-		}
-		System.out.println("Added "+ c +" graphs from customer");
-		
-		qexec = QueryExecutionFactory.create(getPart(), dataset) ;
-		ResultSet part = qexec.execSelect() ;
-		
-		int p = 0;
-		while (part.hasNext())
-		{
-			QuerySolution bindings = part.nextSolution();
-			if (partkeys.contains(bindings.get("partkey").toString())) {
-				URLs.add(bindings.get("graph").toString());
-				p++;
-			}
-		}
-		System.out.println("Added "+ p +" graphs from part");
-		
-		qexec = QueryExecutionFactory.create(getSupplier(), dataset) ;
-		ResultSet supplier = qexec.execSelect() ;
-		
-		int s = 0;
-		while (supplier.hasNext())
-		{
-			QuerySolution bindings = supplier.nextSolution();
-			if (suppkeys.contains(bindings.get("suppkey").toString())) {
-				URLs.add(bindings.get("graph").toString());
-				s++;
-			}
-		}
-		System.out.println("Added "+ s +" graphs from supplier");
-		
-		qexec = QueryExecutionFactory.create(getDate(), dataset) ;
-		ResultSet date = qexec.execSelect() ;
+	}
+
+	private void executeQuery(String query, String primarykey, HashSet<String> keys) {
+		qexec = QueryExecutionFactory.create(query, dataset) ;
+		ResultSet resultSet = qexec.execSelect() ;
 		
 		int d = 0;
-		while (date.hasNext())
+		while (resultSet.hasNext())
 		{
-			QuerySolution bindings = date.nextSolution();
-			if (datekeys.contains(bindings.get("date").toString())) {
+			QuerySolution bindings = resultSet.nextSolution();
+			if (keys.contains(bindings.get(primarykey).toString())) {
 				URLs.add(bindings.get("graph").toString());
 				d++;
 			}
 		}
-		System.out.println("Added "+ d +" graphs from date");
-		
-		dataset.commit();
-		dataset.end();
-		dataRead = true;
+		System.out.println("Added "+ d +" graphs ("+primarykey+")");
 	}
 	
 	private int convertToNumberOfFacts(int percentage) {
@@ -213,6 +217,28 @@ public class SSBProcessor {
     		    "                }" +
     		    "            }" +
     		    "            limit "+numberOfFacts+
+    		    "        } " +
+    		    "    }" +
+    		    "}" ;
+    	return query;
+    }
+	
+	private String getAllLineorders() {
+    	String query = ""+
+    		    "select distinct ?a ?loGraph ?suppkey ?partkey ?customer ?orderdate ?commitdate { " +
+    		    "    Graph ?metadata {" +
+    		    "        ?a  <http://example.com/custkey> ?customer ;" +
+    		    "            <http://example.com/partkey> ?partkey ;" +
+    		    "            <http://example.com/suppkey> ?suppkey ;" +
+    		    "            <http://example.com/orderdate> ?orderdate ;" +
+    		    "            <http://example.com/commitdate> ?commitdate ." +
+    		    "        {" +
+    		    "            Select distinct ?a ?loGraph      " +
+    		    "            { " +
+    		    "                GRAPH ?loGraph {" +
+    		    "                    ?a <http://example.com/revenue> ?c" +
+    		    "                }" +
+    		    "            }" +
     		    "        } " +
     		    "    }" +
     		    "}" ;
